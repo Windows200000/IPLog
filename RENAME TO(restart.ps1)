@@ -1,0 +1,3 @@
+cd "PATH TO CLONE"
+node .
+Write-Output 'STARTED'
