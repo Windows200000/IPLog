@@ -109,7 +109,7 @@ function setupScheduled() {
 	if (isWritingJsonLog) {
 		console.log ('\n' + 'writing log: ' + isWritingJsonLog + '\n' + 'Writing: ' + cronstrue.toString(settings.writeFileSchedule))
 		writeJob = schedule.scheduleJob(settings.writeFileSchedule, function(){ 
-			writeLog()
+			writeLog(false)
 		});
 	} else {
 		console.log('\n' + 'writing log: ' + isWritingJsonLog)
@@ -129,9 +129,18 @@ function setupScheduled() {
 
 }
 
-function writeLog() {
-	console.log('writing log...');
+function writeLog(backup) {
+	if (backup) {
+		fs.rename("IPLog.json", "IPLog_backup.json", renameErr => {
+			if (renameErr) {
+			  console.error("Error while renaming the temporary file:", renameErr);
+			} else {
+			  console.log("backed up last log");
+			}
+		  });
+	};
 	return new Promise((resolve, reject) => {
+		console.log('writing log...');
         fs.writeFile("IPLog.json", JSON.stringify(logs, null, "\t"), err => {
             if (err) {
                 reject(err);
@@ -381,8 +390,14 @@ function timeUntilNextTest() {
 
 
 
+process.on('SIGINT', () => shutDown());
+process.on('SIGTERM', () => shutDown());
+process.on('SIGHUP', () => shutDown());
+process.on('SIGBREAK', () => shutDown());
 
-process.on('SIGINT', () => {
+
+function shutDown() {
+	schedule.gracefulShutdown;
 	if(isShowingTaskbarIcons) {
 		console.log('\nClosing tray icons...');
 		trayv4.close();
@@ -396,7 +411,7 @@ process.on('SIGINT', () => {
 
 	if(isWritingJsonLog) {
 		console.log("Saving latest logs:")
-		writeLog().then(() => {
+		writeLog(true).then(() => {
 			console.log("\nExiting")
 			process.exit();
 		})
@@ -405,7 +420,7 @@ process.on('SIGINT', () => {
 		console.log("\nExiting");
 		process.exit();
 	}
-});
+};
 
 
 process.stdin.on('data', (data) => {
@@ -442,7 +457,7 @@ process.stdin.on('data', (data) => {
 			}, 1000);
       		break;
 		case scripts[4]:
-			writeLog()
+			writeLog(false)
 			break;
 	}
 });
