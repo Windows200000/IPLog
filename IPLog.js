@@ -92,47 +92,55 @@ fs.watchFile('./test.js', () => {
 });
 
 function setupScheduled() {
-	console.log(
-		'IPLog - ready' + '\n' + 'writing logs: ' + isWritingJsonLog + '\n' +
-		'IPLog: ' + cronstrue.toString(settings.logSchedule)  
-	);
+	console.log('IPLog - ready');
 	
-	if (isSendingMails) {
-		console.log ('\n' + 'sending Email: ' + isSendingMails + '\n' + 'Mail: ' + cronstrue.toString(settings.mailSchedule))
-	}else{console.log('\n' + 'sending Email: ' + isSendingMails)};
-	
-	//console.log('logging IP at ' + ownTools.getTime());makeLog(); //LOG TEST
+	//console.log('logging IP at ' + ownTools.getTime());logIP(); //LOG TEST
 	
 	if (isCheckingIP) {
+		console.log ('\n' + 'checking IP: ' + isCheckingIP + '\n' + 'Checking: ' + cronstrue.toString(settings.logSchedule))
 		logJob = schedule.scheduleJob(settings.logSchedule, function(){ 
 			console.log('logging IP at ' + ownTools.getTime());
-			makeLog();
+			logIP();
 		});
+	} else {
+		console.log('\n' + 'checking IP: ' + isCheckingIP)
 	};
 
 	if (isWritingJsonLog) {
+		console.log ('\n' + 'writing log: ' + isWritingJsonLog + '\n' + 'Writing: ' + cronstrue.toString(settings.writeFileSchedule))
 		writeJob = schedule.scheduleJob(settings.writeFileSchedule, function(){ 
 			writeLog()
 		});
+	} else {
+		console.log('\n' + 'writing log: ' + isWritingJsonLog)
 	};
 	
 	if (isSendingMails) {
+		console.log ('\n' + 'sending mail: ' + isSendingMails + '\n' + 'Mail: ' + cronstrue.toString(settings.mailSchedule))
 		const mailJob = schedule.scheduleJob(settings.mailSchedule, async function(){ 
-			console.log('sending email at ' + ownTools.getTime());
+			console.log('sending mail at ' + ownTools.getTime());
 			mail.send(settings.MAIL_TO, 'IPLog', await mail.write(await ownTools.findChanges(logs)))
 				.then((result) => console.log(result, '\n', 'email sent successfully', '\n'))
 				.catch((error) => console.error(error.message, '\n', 'email failed', '\n'));
 		});
+	} else {
+		console.log('\n' + 'sending mail: ' + isSendingMails)
 	};
 
 }
 
 function writeLog() {
 	console.log('writing log...');
-	fs.writeFile("IPLog.json", JSON.stringify(logs, null, "\t"), err => {
-		if (err) throw err; 
-		console.log("done writing last log");
-	});
+	return new Promise((resolve, reject) => {
+        fs.writeFile("IPLog.json", JSON.stringify(logs, null, "\t"), err => {
+            if (err) {
+                reject(err);
+            } else {
+                console.log("done writing log");
+                resolve();
+            }
+        });
+    });
 }
 
 if (isShowingTaskbarIcons) {
@@ -194,7 +202,7 @@ if (shouldTestSendMail) {
 	makeMailTest();
   };
 
-async function makeLog() {
+async function logIP() {
 	newLog = {};
 	IPtestStatus = true;
 	newLog.time = ownTools.getTime();
@@ -375,14 +383,29 @@ function timeUntilNextTest() {
 
 
 process.on('SIGINT', () => {
-	console.log('closing tray icons');
 	if(isShowingTaskbarIcons) {
+		console.log('\nClosing tray icons...');
 		trayv4.close();
 		trayv6.close();
 	}
-	if(isShowingTestIcon) trayTest.close();
-	process.exit();
-  });
+
+	if(isShowingTestIcon) {
+		console.log('\nClosing test icon...');
+		trayTest.close();
+	}
+
+	if(isWritingJsonLog) {
+		console.log("Saving latest logs:")
+		writeLog().then(() => {
+			console.log("\nExiting")
+			process.exit();
+		})
+		
+	} else {
+		console.log("\nExiting");
+		process.exit();
+	}
+});
 
 
 process.stdin.on('data', (data) => {
