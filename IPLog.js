@@ -61,6 +61,7 @@ try {
 		"MAIL_TO": '',
     	"logSchedule": '*/10 */1 * * * *',
     	"mailSchedule": '0 16 * * 5',
+		"writeFileSchedule": '0,30 * * * *'
     };
   
     fs.writeFile('./settings.json', JSON.stringify(blankSettings, null, 2), 'utf8', (err) => {
@@ -96,8 +97,6 @@ function setupScheduled() {
 		'IPLog: ' + cronstrue.toString(settings.logSchedule)  
 	);
 	
-	
-	
 	if (isSendingMails) {
 		console.log ('\n' + 'sending Email: ' + isSendingMails + '\n' + 'Mail: ' + cronstrue.toString(settings.mailSchedule))
 	}else{console.log('\n' + 'sending Email: ' + isSendingMails)};
@@ -108,6 +107,12 @@ function setupScheduled() {
 		logJob = schedule.scheduleJob(settings.logSchedule, function(){ 
 			console.log('logging IP at ' + ownTools.getTime());
 			makeLog();
+		});
+	};
+
+	if (isWritingJsonLog) {
+		writeJob = schedule.scheduleJob(settings.writeFileSchedule, function(){ 
+			writeLog()
 		});
 	};
 	
@@ -122,7 +127,13 @@ function setupScheduled() {
 
 }
 
-
+function writeLog() {
+	console.log('writing log...');
+	fs.writeFile("IPLog.json", JSON.stringify(logs, null, "\t"), err => {
+		if (err) throw err; 
+		console.log("done writing last log");
+	});
+}
 
 if (isShowingTaskbarIcons) {
 	if(isShowingTestIcon) global.trayTest = new Tray(path.join(__dirname, 'images', 'orangev4.ico' ));
@@ -198,9 +209,8 @@ async function makeLog() {
 	console.log(currentLog);
 	firstTestDone = true;
 	IPtestStatus = false;
+	logs.push(currentLog);
 
-
-	if (isWritingJsonLog) {
 		/*
 		if (isWritingJsonLog) {
 			logs.push(currentLog);
@@ -228,6 +238,8 @@ async function makeLog() {
 			
 		}
 */
+
+	/*
 		logs.push(currentLog);
 		fs.writeFile("IPLogTemp.json", JSON.stringify(logs), err => {
 			if (err) throw err;
@@ -239,6 +251,8 @@ async function makeLog() {
 			  }
 			});
 		});
+
+	*/
 		/*
 		let lastLogs = JSON.parse(fs.readFileSync('./IPLogTemp.json', 'utf8'));
 
@@ -254,9 +268,6 @@ async function makeLog() {
 			console.log("done writing last log");
 		});
 		*/
-	} else {
-		console.log('not writing log', '\n')
-	};
 /*
 	if (isShowingTaskbarIcons) {
 		setTrayIcon(4,ownTools.isIPv4Address(currentLog.ipifyIPv4) || ownTools.isIPv4Address(currentLog.testIPv4));
@@ -376,7 +387,7 @@ process.on('SIGINT', () => {
 
 process.stdin.on('data', (data) => {
 	const command = data.trim();
-	let scripts = ['test', 'sendMail', 'makeMail', 'restart'] ;
+	let scripts = ['test', 'sendMail', 'makeMail', 'restart', 'writeFile'] ;
 	switch(command) {
 		default:
 			console.error(colorette.red(`Unknown command: ${command} \n`) + colorette.green(`Valid commands: ${scripts}`));
@@ -391,22 +402,24 @@ process.stdin.on('data', (data) => {
 			makeMailTest();
 			break;
 		case scripts[3]:
-		if(isShowingTaskbarIcons) {
-			trayv4.close();
-			trayv6.close();
-		}
-		if(isShowingTestIcon) trayTest.close();
-
-		const child = spawn('start', ['powershell.exe', '-File', '.\\restart.ps1'], { shell: true });
-		child.on('message', (message) => {
-			if (message === 'STARTED') {
-			  process.exit();
+			if(isShowingTaskbarIcons) {
+				trayv4.close();
+				trayv6.close();
 			}
-		  });
-		setTimeout(() => {
-			process.exit();
-		  }, 1000);
-      break;
-			
+			if(isShowingTestIcon) trayTest.close();
+
+			const child = spawn('start', ['powershell.exe', '-File', '.\\restart.ps1'], { shell: true });
+			child.on('message', (message) => {
+				if (message === 'STARTED') {
+				  process.exit();
+				}
+			});
+			setTimeout(() => {
+				process.exit();
+			}, 1000);
+      		break;
+		case scripts[4]:
+			writeLog()
+			break;
 	}
 });
