@@ -390,11 +390,10 @@ function timeUntilNextTest() {
 
 
 
-process.on('SIGINT', () => shutDown());
-process.on('SIGTERM', () => shutDown());
-process.on('SIGHUP', () => shutDown());
-process.on('SIGBREAK', () => shutDown());
-
+['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK', 'SIGQUIT', 'SIGKILL', 'SIGUSR1', 'SIGUSR2', 'exit', 'uncaughtException']
+  .forEach(signal => process.on(signal, () => {
+    shutDown()
+  }));
 
 function shutDown() {
 	schedule.gracefulShutdown;
