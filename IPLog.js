@@ -126,6 +126,7 @@ function setupScheduled() {
 	} else {
 		console.log('\n' + 'sending mail: ' + isSendingMails)
 	};
+	console.log('\n\n')
 
 }
 
@@ -158,6 +159,8 @@ if (isShowingTaskbarIcons) {
 	global.trayv6 = new Tray(path.join(__dirname, 'images', 'orangev6.ico' ));
 	trayv4.tooltip = "Waiting for first test...";
 	trayv6.tooltip = "Waiting for first test...";
+	trayv4.menu = [{text: "Exit", callback: _ => shutDown()}]
+	trayv6.menu = [{text: "Exit", callback: _ => shutDown()}]
 
 	const countdownJob = schedule.scheduleJob('*/1 * * * * *', function(){
 		//console.log(currentLog);
@@ -390,7 +393,7 @@ function timeUntilNextTest() {
 
 
 
-['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK', 'SIGQUIT', 'SIGKILL', 'SIGUSR1', 'SIGUSR2', 'exit', 'uncaughtException']
+['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK', 'SIGQUIT', 'SIGKILL', 'exit', 'uncaughtException', 'WM_CLOSE', 'WM_QUIT']
   .forEach(signal => process.on(signal, () => {
     shutDown()
   }));
