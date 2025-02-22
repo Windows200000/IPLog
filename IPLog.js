@@ -15,7 +15,14 @@ const fs = require('fs');
 
 const schedule = require('node-schedule');
 const cronstrue = require('cronstrue');
-let logs = require('./IPlog.json');
+let logs
+try {
+		logs = require('./IPlog.json')
+	} catch (error) {
+		console.log('Error loading IPlog.json:' + error.message + ', recovering from IPLog_backup.json')
+		fs.copyFileSync('IPLog_backup.json', './IPlog.json');
+		logs = require('./IPlog.json')
+	}
 const { spawn } = require('child_process');
 
 let test = require('./test');
